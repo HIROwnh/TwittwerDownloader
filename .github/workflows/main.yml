@@ -1,10 +1,10 @@
-name: Instagram Story Downloader
+name: Twitter Video Downloader
 
 on: 
   workflow_dispatch:
     inputs:
       url:
-        description: 'Twitter Video Downloader'
+        description: 'Twitter Video URL'
         required: true
         type: string
       output_folder:
@@ -33,7 +33,9 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install ytd_dlp
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install yt-dlp
           
       - name: Create output directory
         run: |
@@ -42,7 +44,7 @@ jobs:
           
       - name: Download Video
         run: |
-          python main.py "${{ github.event.inputs.url }}" "${{ github.event.inputs.output_folder }} /temp_downloads"
+          python downloader.py "${{ github.event.inputs.url }}" "${{ github.event.inputs.output_folder }}/temp_downloads"
           
       - name: Process and split large files
         run: |
@@ -50,7 +52,7 @@ jobs:
           
           # Get timestamp for unique naming
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          CONTENT_NAME="story_${TIMESTAMP}"
+          CONTENT_NAME="twitter_video_${TIMESTAMP}"
           
           # Check if any files were downloaded
           if [ -z "$(ls -A temp_downloads)" ]; then
@@ -99,13 +101,13 @@ jobs:
             exit 0
           fi
           
-          git commit -m "Add Twitter Video Download - $(date +%Y-%m-%d_%H:%M:%S)"
+          git commit -m "Add Twitter video download - $(date +%Y-%m-%d_%H:%M:%S)"
           git push
 
       - name: Upload artifacts (backup)
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: story-download-${{ github.run_number }}
+          name: twitter-video-${{ github.run_number }}
           path: ${{ github.event.inputs.output_folder }}
           retention-days: 7
