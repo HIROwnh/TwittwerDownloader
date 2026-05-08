@@ -44,7 +44,7 @@ jobs:
           
       - name: Download Video
         run: |
-          python downloader.py "${{ github.event.inputs.url }}" "${{ github.event.inputs.output_folder }}/temp_downloads"
+          python main.py "${{ github.event.inputs.url }}" "${{ github.event.inputs.output_folder }}/temp_downloads"
           
       - name: Process and split large files
         run: |
