@@ -1,18 +1,14 @@
 name: Twitter Video Downloader
 
-on: 
+on:
   workflow_dispatch:
     inputs:
       url:
         required: true
       output_folder:
         required: true
-      run_id:
-        required: false
-        default: ""
 
-  
-permissions: 
+permissions:
   contents: write
 
 jobs:
@@ -24,64 +20,47 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-          
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           pip install yt-dlp
-          
+
       - name: Create output directory
         run: |
           mkdir -p ${{ github.event.inputs.output_folder }}
           mkdir -p ${{ github.event.inputs.output_folder }}/temp_downloads
-          
+
       - name: Download Video
         run: |
           python main.py "${{ github.event.inputs.url }}" "${{ github.event.inputs.output_folder }}/temp_downloads"
-          
+
       - name: Process and split large files
         run: |
           cd ${{ github.event.inputs.output_folder }}
-          
-          # Get timestamp for unique naming
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           CONTENT_NAME="twitter_video_${TIMESTAMP}"
-          
-          # Check if any files were downloaded
+
           if [ -z "$(ls -A temp_downloads)" ]; then
             echo "No files downloaded. Exiting."
             exit 1
           fi
-          
-          # Calculate total size in MB
+
           TOTAL_SIZE=$(du -sm temp_downloads | cut -f1)
           echo "Total download size: ${TOTAL_SIZE}MB"
-          
+
           if [ $TOTAL_SIZE -gt 100 ]; then
-            echo "Files exceed 100MB. Splitting into 100MB parts..."
-            
-            # Create zip with 100MB splits
             zip -r -s 100m "${CONTENT_NAME}" temp_downloads/
-            
-            echo "Split complete. Parts created:"
-            ls -lh ${CONTENT_NAME}.*
-            
-            # Clean up temp directory
             rm -rf temp_downloads
           else
-            echo "Files are 100MB or less. Moving files directly..."
-            
-            # Move files from temp_downloads to a timestamped folder
             mkdir -p "${CONTENT_NAME}"
             mv temp_downloads/* "${CONTENT_NAME}/"
-            
-            # Clean up temp directory
             rm -rf temp_downloads
           fi
 
@@ -93,13 +72,10 @@ jobs:
       - name: Commit and push files
         run: |
           git add ${{ github.event.inputs.output_folder }}
-          
-          # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0
           fi
-          
           git commit -m "Add Twitter video download - $(date +%Y-%m-%d_%H:%M:%S)"
           git push
 
